@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#090a0f">
+  <title>Focus Tracker — Overdelivery Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #090a0f;
+      --card-bg: rgba(20, 24, 37, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-purple: #7952f5;
+      --accent-cyan: #00d2ff;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-gradient: linear-gradient(135deg, #7952f5 0%, #00d2ff 100%);
+      --fire-gradient: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+      --gold-gradient: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #4b5563;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(121, 82, 245, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 85% 90%, rgba(0, 210, 255, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      padding: 20px 16px 110px 16px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 4px 2px;
+    }
+
+    .user-greeting {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 700;
+    }
+
+    .user-date {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+      margin-top: 2px;
+    }
+
+    .streak-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #fbbf24;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .nav-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .nav-btn.active {
+      background: var(--card-bg);
+      color: var(--text-main);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Hero progress card */
+    .progress-hero {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 36px -12px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-hero::after {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .progress-info {
+      flex: 1;
+      padding-right: 12px;
+    }
+
+    .progress-info h2 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .progress-info p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .over-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(121, 82, 245, 0.16);
+      border: 1px solid rgba(121, 82, 245, 0.35);
+      color: #c4b5fd;
+      padding: 3px 8px;
+      border-radius: 99px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-circle-wrap {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      flex-shrink: 0;
+    }
+
+    .progress-circle-wrap svg {
+      transform: rotate(-90deg);
+      width: 92px;
+      height: 92px;
+    }
+
+    .circle-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.07);
+      stroke-width: 8;
+    }
+
+    .circle-val {
+      fill: none;
+      stroke: url(#gradient);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 251.3;
+      stroke-dashoffset: 251.3;
+      transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .circle-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.5px;
+    }
+
+    .section-title {
+      font-size: 0.88rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin: 18px 2px 12px 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .habits-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Habit Card */
+    .habit-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 15px 16px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .habit-card.completed {
+      background: rgba(16, 185, 129, 0.05);
+      border-color: rgba(16, 185, 129, 0.22);
+    }
+
+    .habit-card.overachieved {
+      background: linear-gradient(145deg, rgba(121, 82, 245, 0.08), rgba(0, 210, 255, 0.05));
+      border-color: rgba(0, 210, 255, 0.35);
+      box-shadow: 0 0 20px -5px rgba(0, 210, 255, 0.15);
+    }
+
+    .habit-main-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .habit-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      transition: all 0.25s;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .habit-card.completed .habit-icon {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .habit-card.overachieved .habit-icon {
+      background: var(--accent-gradient);
+      box-shadow: 0 4px 14px rgba(0, 210, 255, 0.3);
+    }
+
+    .habit-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .habit-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .habit-name {
+      font-size: 0.96rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.2s;
+    }
+
+    .habit-card.completed .habit-name {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .over-tag {
+      font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(0, 210, 255, 0.2);
+      color: #67e8f9;
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      white-space: nowrap;
+    }
+
+    .habit-sub {
+      font-size: 0.77rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .habit-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      padding: 1px 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 5px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .habit-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-expand-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .toggle-expand-btn.open {
+      transform: rotate(180deg);
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+
+    .habit-checkbox {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      border: 2px solid var(--text-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .habit-card.completed .habit-checkbox {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .habit-checkbox svg {
+      opacity: 0;
+      transform: scale(0.4);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .habit-card.completed .habit-checkbox svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Extra / Overachieve expandable drawer */
+    .overdelivery-drawer {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.08);
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .overdelivery-drawer.open {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .drawer-title {
+      font-weight: 700;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chips-group {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn {
+      padding: 6px 11px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .chip-btn:active {
+      transform: scale(0.94);
+    }
+
+    .chip-btn.active-chip {
+      background: var(--accent-gradient);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(0, 210, 255, 0.3);
+    }
+
+    .why-it-matters-btn {
+      align-self: flex-start;
+      background: transparent;
+      border: none;
+      color: #38bdf8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 0;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* Workout Special Card */
+    .workout-counter-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      margin-top: 14px;
+      backdrop-filter: blur(12px);
+    }
+
+    .workout-main-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .workout-btns {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-circle:active {
+      transform: scale(0.9);
+      background: var(--accent-purple);
+    }
+
+    .over-workout-banner {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(245, 158, 11, 0.09);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.77rem;
+      color: #fde68a;
+    }
+
+    /* Modal / Bottom Sheet for Insights */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 480px;
+      background: #111420;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+      padding: 24px 22px 36px 22px;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-drag-indicator {
+      width: 40px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 99px;
+      margin: 0 auto 18px auto;
+    }
+
+    .modal-hero-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+      line-height: 1.25;
+    }
+
+    .modal-subtitle {
+      font-size: 0.82rem;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
+    }
+
+    .modal-content-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-size: 0.86rem;
+      color: #d1d5db;
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+
+    .modal-content-box strong {
+      color: #fff;
+    }
+
+    .modal-content-box ul {
+      padding-left: 18px;
+      margin-top: 8px;
+    }
+
+    .modal-content-box li {
+      margin-bottom: 6px;
+    }
+
+    .modal-close-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-gradient);
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 0.92rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(121, 82, 245, 0.35);
+      transition: all 0.2s;
+    }
+
+    .modal-close-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Month & Year tabs */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 7px;
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--card-border);
+      margin-bottom: 22px;
+    }
+
+    .cal-day-name {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding-bottom: 6px;
+    }
+
+    .cal-cell {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+    }
+
+    .cal-cell.today {
+      border-color: var(--accent-purple);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .cal-cell.done {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+      font-weight: 700;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .cal-cell.over {
+      background: rgba(0, 210, 255, 0.25);
+      color: #67e8f9;
+      font-weight: 800;
+      border-color: rgba(0, 210, 255, 0.5);
+      box-shadow: 0 0 10px rgba(0, 210, 255, 0.25);
+    }
+
+    .goal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+
+    .goal-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.94rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar-bg {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-bar-val {
+      height: 100%;
+      background: var(--accent-gradient);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.35s ease;
+    }
+
+    .goal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .btn-step {
+      font-size: 0.74rem;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text-main);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .reset-btn-wrap {
+      margin-top: 36px;
+      text-align: center;
+    }
+
+    .reset-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <header>
+      <div>
+        <div class="user-greeting">Твой Фокус & Прогресс</div>
+        <div class="user-date" id="dateDisplay">Сегодня</div>
+      </div>
+      <div class="streak-badge">
+        <span>⚡</span>
+        <span id="streakCount">0 дн.</span>
+      </div>
+    </header>
+
+    <div class="nav-tabs">
+      <button class="nav-btn active" onclick="switchTab('today', event)">Сегодня</button>
+      <button class="nav-btn" onclick="switchTab('month', event)">Месяц</button>
+      <button class="nav-btn" onclick="switchTab('year', event)">Год</button>
+    </div>
+
+    <!-- ТАБ: СЕГОДНЯ -->
+    <div id="tab-today" class="tab-content active">
+      <div class="progress-hero">
+        <div class="progress-info">
+          <h2>Дневная норма</h2>
+          <p id="progressSubtitle">Выполни базовый план или сделай сверхурочный рывок!</p>
+          <div id="overachieveHeroPill" class="over-badge-pill" style="display: none;">
+            <span>🚀</span> Сверхдостижение активно
+          </div>
+        </div>
+        <div class="progress-circle-wrap">
+          <svg>
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#7952f5"/>
+                <stop offset="100%" stop-color="#00d2ff"/>
+              </linearGradient>
+            </defs>
+            <circle class="circle-bg" cx="46" cy="46" r="40"></circle>
+            <circle class="circle-val" id="circleProgress" cx="46" cy="46" r="40"></circle>
+          </svg>
+          <div class="circle-text" id="percentageText">0%</div>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <span>Привычки и сверхотдача</span>
+        <span id="completedCounter" style="font-size: 0.8rem; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;">0 / 5</span>
+      </div>
+
+      <div class="habits-list" id="habitsList"></div>
+
+      <!-- Карточка тренировок с логированием сверхотдачи -->
+      <div class="workout-counter-card">
+        <div class="workout-main-flex">
+          <div>
+            <div style="font-weight: 700; margin-bottom: 2px; font-size: 0.96rem;">Тренировки недели</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">Базовая норма: 3 раза в неделю</div>
+          </div>
+          <div class="workout-btns">
+            <button class="btn-circle" onclick="adjustWorkout(-1)">−</button>
+            <span id="workoutText" style="font-weight: 800; font-size: 1.15rem; min-width: 44px; text-align: center; font-family: 'JetBrains Mono', monospace;">0 / 3</span>
+            <button class="btn-circle" onclick="adjustWorkout(1)">+</button>
+          </div>
+        </div>
+
+        <div id="workoutOverBanner" class="over-workout-banner" style="display: none;">
+          <div>
+            <strong>🔥 Сверхплан: <span id="workoutExtraTimes">0</span> доп. тренировок!</strong>
+            <div style="font-size: 0.7rem; opacity: 0.9; margin-top: 1px;">Выход за рамки комфорта и гиперкомпенсация</div>
+          </div>
+          <button class="why-it-matters-btn" style="color: #fbbf24;" onclick="showInsight('workout_over')">Почему это мощно?</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ТАБ: МЕСЯЦ -->
+    <div id="tab-month" class="tab-content">
+      <div class="section-title">Календарь активности</div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+
+      <div class="section-title">Цели на месяц</div>
+      <div id="monthGoalsList"></div>
+    </div>
+
+    <!-- ТАБ: ГОД -->
+    <div id="tab-year" class="tab-content">
+      <div class="section-title">Стратегические цели</div>
+      <div id="yearGoalsList"></div>
+    </div>
+
+    <div class="reset-btn-wrap">
+      <button class="reset-btn" onclick="hardResetData()">Сбросить все сохранённые данные в 0</button>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО: "ПОЧЕМУ ЭТО МОЩНО ДЛЯ ТЕБЯ" -->
+  <div class="modal-overlay" id="insightModal" onclick="closeInsight(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-drag-indicator"></div>
+      <div class="modal-hero-icon" id="insightIcon">⚡</div>
+      <div class="modal-title" id="insightTitle">Сверхдостижение зафиксировано</div>
+      <div class="modal-subtitle" id="insightSubtitle">Научный & практический эффект</div>
+      <div class="modal-content-box" id="insightText">
+        <!-- Текст формируется динамически -->
+      </div>
+      <button class="modal-close-btn" onclick="closeInsightDirect()">Понял, продолжаю разгон 🚀</button>
+    </div>
+  </div>
+
+  <script>
+    // БАЗОВЫЕ НАУЧНЫЕ ИНСАЙТЫ О СВЕРХОТДАЧЕ
+    const INSIGHTS = {
+      coding: {
+        icon: "💻",
+        title: "Глубокий поток & Скорость Senior'а",
+        sub: "Эффект дополнительного кодинга",
+        body: `
+          <strong>Что даёт дополнительное время сверх 45 минут:</strong>
+          <ul>
+            <li><strong>Преодоление порога входа (Warm-up cost):</strong> Первые 25–30 минут мозг только загружает архитектуру проекта в оперативную память. Дополнительные минуты — это 100% чистый deep work (состояние потока).</li>
+            <li><strong>Сложный процент нейропластичности:</strong> Лишние 30 минут в день = +180 часов чистого кода в год. Это эквивалентно 4–5 законченным полноценным проектам в твоё портфолио.</li>
+            <li><strong>Рыночное преимущество:</strong> 90% студентов бросают на базовой норме. Сверхурочные минуты переводят тебя из разряда «теоретик» в «уверенный инженер-практик».</li>
+          </ul>
+        `
+      },
+      english: {
+        icon: "🇬🇧",
+        title: "Языковой прорыв & Снятие языкового барьера",
+        sub: "Эффект дополнительного погружения",
+        body: `
+          <strong>Что происходит при превышении 15 минут:</strong>
+          <ul>
+            <li><strong>Переход из пассива в актив:</strong> 15 минут поддерживают форму, а следующие 15–30 минут заставляют мозг думать на английском без внутреннего перевода.</li>
+            <li><strong>Контекстное запоминание:</strong> Мозг соединяет синтаксис документации и разговорные паттерны напрямую с визуальными образами.</li>
+            <li><strong>Свобода в карьере:</strong> Разница между B1 и уверенным B2/C1 — это возможность сразу проходить собеседования в международные компании с рейтом в валюте.</li>
+          </ul>
+        `
+      },
+      study: {
+        icon: "📚",
+        title: "Когнитивная победа & Сессия без стресса",
+        sub: "Эффект разбора лаб на опережение",
+        body: `
+          <strong>Почему это снижает кортизол и экономит недели:</strong>
+          <ul>
+            <li><strong>Эффект снежного кома:</strong> Лабы, сданные заранее, создают у преподавателей репутацию надежного студента. Автоматы на экзаменах экономят до 80 часов сна в январе/июне.</li>
+            <li><strong>Интервальное повторение (Spaced Repetition):</strong> Изучение материала на день-два раньше лекции активирует эффект предшествования: на парах ты не пытаешься понять с нуля, а лишь закрепляешь детали.</li>
+          </ul>
+        `
+      },
+      workout_over: {
+        icon: "🏋️‍♂️",
+        title: "Банк дисциплины & Плотность миофибрилл",
+        sub: "Выход за рамки 3 тренировок в неделю",
+        body: `
+          <strong>Что даёт 4-я и 5-я тренировка:</strong>
+          <ul>
+            <li><strong>Сверхкомпенсация и выносливость:</strong> Твое тело адаптируется не к базовой нагрузке, а к тому, что требует от него максимума. Ускоряется утилизация молочной кислоты и растет VO2 max.</li>
+            <li><strong>Несокрушимый дофаминовый стержень:</strong> Пойти на тренировку, когда программа-минимум уже закрыта — это прямая тренировка передней поясной коры мозга (aMCC), которая отвечает за силу воли во всех сферах жизни.</li>
+          </ul>
+        `
+      },
+      money: {
+        icon: "💳",
+        title: "Финансовый рычаг & Защита от импульсов",
+        sub: "Бонус: анализ и чтение по капиталу",
+        body: `
+          <strong>Почему это окупается стократно:</strong>
+          <ul>
+            <li><strong>Контроль над утечками:</strong> 95% студентов не знают, куда деваются 20–30% их денег. Разбор финансов возвращает эти деньги в твой карман.</li>
+            <li><strong>Мышление инвестора:</strong> Каждая сохранённая и вложенная 1000 рублей на раннем этапе студенчества за счёт горизонта в 10–15 лет превращается в капитал, освобождающий от необходимости держаться за плохую работу.</li>
+          </ul>
+        `
+      },
+      clean: {
+        icon: "🧹",
+        title: "Цифровой дзен & Экономия оперативной памяти мозга",
+        sub: "Глубокая очистка рабочего пространства",
+        body: `
+          <strong>Наука чистого десктопа:</strong>
+          <ul>
+            <li><strong>Снижение визуального шума:</strong> Каждая лишняя иконка или открытая вкладка неосознанно удерживается вниманием. Очищенный стол снижает отвлечения на 28%.</li>
+            <li><strong>Быстрый вход в работу:</strong> Открывая ноутбук с одним редактором кода, ты начинаешь кодить за 5 секунд вместо 10 минут блуждания по вкладкам.</li>
+          </ul>
+        `
+      }
+    };
+
+    // ЧИСТЫЙ СТАРТ ПО УМОЛЧАНИЮ
+    const defaultData = {
+      streak: 0,
+      workoutCount: 0,
+      expandedHabitId: null,
+      habits: [
+        { 
+          id: 'coding', 
+          name: 'Кодинг и разработка', 
+          base: '45 мин практики', 
+          tag: 'IT', 
+          done: false, 
+          extraMinutes: 0,
+          overachieved: false
+        },
+        { 
+          id: 'study', 
+          name: 'Разбор лекций или лаб', 
+          base: '45 мин фокуса', 
+          tag: 'Вуз', 
+          done: false, 
+          extraMinutes: 0,
+          overachieved: false
+        },
+        { 
+          id: 'english', 
+          name: 'Английский язык', 
+          base: '15 мин практики', 
+          tag: 'Язык', 
+          done: false, 
+          extraMinutes: 0,
+          overachieved: false
+        },
+        { 
+          id: 'money', 
+          name: 'Финансовая осознанность', 
+          base: 'Внести расходы дня', 
+          tag: 'Капитал', 
+          done: false, 
+          bonusTaskDone: false,
+          overachieved: false
+        },
+        { 
+          id: 'clean', 
+          name: 'Цифровая гигиена', 
+          base: '5 мин порядок на ПК', 
+          tag: 'Порядок', 
+          done: false, 
+          bonusTaskDone: false,
+          overachieved: false
+        }
+      ],
+      monthGoals: [
+        { id: 'm1', name: 'Сверстать и запустить pet-проект в сеть', progress: 0 },
+        { id: 'm2', name: 'Закрыть без долгов контрольные точки по вузу', progress: 0 },
+        { id: 'm3', name: 'Провести 12 качественных тренировок', progress: 0 }
+      ],
+      yearGoals: [
+        { id: 'y1', name: 'Первый коммерческий заказ / оффер в разработке', progress: 0 },
+        { id: 'y2', name: 'Свободное чтение документации и разговорный B2', progress: 0 },
+        { id: 'y3', name: 'Сформировать подушку безопасности на 3–6 месяцев', progress: 0 }
+      ]
+    };
+
+    let appData = loadData();
+
+    function loadData() {
+      const saved = localStorage.getItem('focus_tracker_overdelivery_v1');
+      if (saved) {
+        try { 
+          const parsed = JSON.parse(saved);
+          return { ...defaultData, ...parsed };
+        } catch (e) {}
+      }
+      return JSON.parse(JSON.stringify(defaultData));
+    }
+
+    function saveData() {
+      localStorage.setItem('focus_tracker_overdelivery_v1', JSON.stringify(appData));
+    }
+
+    function switchTab(tabId, evt) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+      document.getElementById('tab-' + tabId).classList.add('active');
+      if (evt && evt.target) {
+        evt.target.classList.add('active');
+      }
+
+      if (tabId === 'month') renderCalendar();
+      if (tabId === 'year') renderGoals();
+    }
+
+    function renderDate() {
+      const now = new Date();
+      const options = { day: 'numeric', month: 'long', weekday: 'short' };
+      const formatted = now.toLocaleDateString('ru-RU', options);
+      document.getElementById('dateDisplay').innerText = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+
+    function renderHabits() {
+      const list = document.getElementById('habitsList');
+      list.innerHTML = '';
+
+      let completedCount = 0;
+      let hasOverachievementToday = false;
+
+      appData.habits.forEach((habit, idx) => {
+        if (habit.done) completedCount++;
+        if (habit.overachieved) hasOverachievementToday = true;
+
+        const card = document.createElement('div');
+        const isCompleted = habit.done;
+        const isOver = habit.overachieved;
+        const isExpanded = appData.expandedHabitId === habit.id;
+
+        card.className = `habit-card ${isCompleted ? 'completed' : ''} ${isOver ? 'overachieved' : ''}`;
+
+        // Дополнительный бейдж перевыполнения
+        let overBadgeHtml = '';
+        if (isOver) {
+          if (habit.extraMinutes > 0) {
+            overBadgeHtml = `<span class="over-tag">+${habit.extraMinutes} мин 🔥</span>`;
+          } else if (habit.bonusTaskDone) {
+            overBadgeHtml = `<span class="over-tag">Бонус+ ⚡</span>`;
+          }
+        }
+
+        // Выпадающее меню сверхотдачи
+        let drawerHtml = '';
+        if (habit.id === 'coding' || habit.id === 'study' || habit.id === 'english') {
+          drawerHtml = `
+            <div class="overdelivery-drawer ${isExpanded ? 'open' : ''}">
+              <div class="drawer-header">
+                <span class="drawer-title">🚀 Сверхнорма времени:</span>
+                <span style="font-family: 'JetBrains Mono';">${habit.extraMinutes > 0 ? `+${habit.extraMinutes} мин` : '0 мин'}</span>
+              </div>
+              <div class="chips-group">
+                <button class="chip-btn ${habit.extraMinutes === 15 ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, 15)">+15м</button>
+                <button class="chip-btn ${habit.extraMinutes === 30 ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, 30)">+30м</button>
+                <button class="chip-btn ${habit.extraMinutes === 45 ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, 45)">+45м</button>
+                <button class="chip-btn ${habit.extraMinutes === 60 ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, 60)">+60м</button>
+                ${habit.extraMinutes > 0 ? `<button class="chip-btn" style="color: #ef4444;" onclick="setExtraMinutes(${idx}, 0)">Сброс</button>` : ''}
+              </div>
+              <button class="why-it-matters-btn" onclick="showInsight('${habit.id}')">
+                💡 Что мне это даёт и почему это мощно?
+              </button>
+            </div>
+          `;
+        } else {
+          // Для финансов и цифровой гигиены
+          const bonusLabel = habit.id === 'money' ? 'Прочёл главу книги по финансам / оптимизировал бюджет' : 'Глубокая зачистка папки Загрузки и закладок браузера';
+          drawerHtml = `
+            <div class="overdelivery-drawer ${isExpanded ? 'open' : ''}">
+              <div class="drawer-header">
+                <span class="drawer-title">⚡ Сверхдействие:</span>
+              </div>
+              <div class="chips-group">
+                <button class="chip-btn ${habit.bonusTaskDone ? 'active-chip' : ''}" onclick="toggleBonusTask(${idx})">
+                  ${habit.bonusTaskDone ? '✓ Бонус выполнен' : '+ ' + bonusLabel}
+                </button>
+              </div>
+              <button class="why-it-matters-btn" onclick="showInsight('${habit.id}')">
+                💡 В чем эффект этого сверхусилия?
+              </button>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="habit-main-row" onclick="handleCardClick(${idx})">
+            <div class="habit-icon">
+              ${habit.id === 'coding' ? '💻' : habit.id === 'study' ? '📚' : habit.id === 'english' ? '🇬🇧' : habit.id === 'money' ? '💳' : '🧹'}
+            </div>
+            <div class="habit-details">
+              <div class="habit-name-wrap">
+                <span class="habit-name">${habit.name}</span>
+                ${overBadgeHtml}
+              </div>
+              <div class="habit-sub">
+                <span class="habit-badge">${habit.tag}</span>
+                <span>${habit.base}</span>
+              </div>
+            </div>
+            <div class="habit-actions-right">
+              <button class="toggle-expand-btn ${isExpanded ? 'open' : ''}" title="Сверхдостижение" onclick="toggleDrawer(event, '${habit.id}')">
+                ▼
+              </button>
+              <div class="habit-checkbox" onclick="toggleHabitCheck(event, ${idx})">
+                <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+                  <path d="M1.5 5.5L5 9L12.5 1.5" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          ${drawerHtml}
+        `;
+
+        list.appendChild(card);
+      });
+
+      // Обновление счетчиков
+      document.getElementById('completedCounter').innerText = `${completedCount} / ${appData.habits.length}`;
+      document.getElementById('streakCount').innerText = `${appData.streak} дн.`;
+      document.getElementById('workoutText').innerText = `${appData.workoutCount} / 3`;
+
+      // Проверка сверх-тренировок
+      const workoutBanner = document.getElementById('workoutOverBanner');
+      if (appData.workoutCount > 3) {
+        hasOverachievementToday = true;
+        workoutBanner.style.display = 'flex';
+        document.getElementById('workoutExtraTimes').innerText = appData.workoutCount - 3;
+      } else {
+        workoutBanner.style.display = 'none';
+      }
+
+      // Бейдж сверхдостижения в шапке
+      document.getElementById('overachieveHeroPill').style.display = hasOverachievementToday ? 'inline-flex' : 'none';
+
+      // Расчет процентов
+      const percent = Math.round((completedCount / appData.habits.length) * 100);
+      document.getElementById('percentageText').innerText = `${percent}%`;
+
+      const circle = document.getElementById('circleProgress');
+      const circumference = 2 * Math.PI * 40; // ~251.3
+      const offset = circumference - (percent / 100) * circumference;
+      circle.style.strokeDashoffset = offset;
+
+      const sub = document.getElementById('progressSubtitle');
+      if (hasOverachievementToday && percent === 100) {
+        sub.innerText = "100% + Сверхнорма! Ты формируешь элитную дисциплину! 🚀";
+      } else if (hasOverachievementToday) {
+        sub.innerText = "Идёт перевыполнение! Главное — не сбавлять обороты.";
+      } else if (percent === 0) {
+        sub.innerText = "Начни день с базовой задачи или сразу иди на рекорд!";
+      } else if (percent < 100) {
+        sub.innerText = `Закрыто ${completedCount} из ${appData.habits.length}. Разгон отличный!`;
+      } else {
+        sub.innerText = "Базовый план выполнен на 100%! Пора войти в Overdelivery? 🔥";
+      }
+    }
+
+    function handleCardClick(idx) {
+      // Клик по телу карточки раскрывает меню перевыполнения
+      const habit = appData.habits[idx];
+      appData.expandedHabitId = appData.expandedHabitId === habit.id ? null : habit.id;
+      renderHabits();
+    }
+
+    function toggleDrawer(e, habitId) {
+      e.stopPropagation();
+      appData.expandedHabitId = appData.expandedHabitId === habitId ? null : habitId;
+      renderHabits();
+    }
+
+    function toggleHabitCheck(e, index) {
+      e.stopPropagation();
+      const habit = appData.habits[index];
+      habit.done = !habit.done;
+
+      if (habit.done) {
+        const allDone = appData.habits.every(h => h.done);
+        if (allDone && appData.streak === 0) {
+          appData.streak = 1;
+        }
+        triggerConfetti(0.7);
+      }
+
+      saveData();
+      renderHabits();
+    }
+
+    function setExtraMinutes(habitIdx, minutes) {
+      const habit = appData.habits[habitIdx];
+      const previous = habit.extraMinutes;
+      habit.extraMinutes = minutes;
+      habit.overachieved = minutes > 0;
+
+      // Если добавил времени — автоматически считаем базовую привычку закрытой
+      if (minutes > 0) {
+        habit.done = true;
+      }
+
+      saveData();
+      renderHabits();
+
+      // Если время увеличилось — показываем мотивационный инсайт
+      if (minutes > previous && minutes > 0) {
+        triggerConfetti(0.5);
+        showInsight(habit.id);
+      }
+    }
+
+    function toggleBonusTask(habitIdx) {
+      const habit = appData.habits[habitIdx];
+      habit.bonusTaskDone = !habit.bonusTaskDone;
+      habit.overachieved = habit.bonusTaskDone;
+
+      if (habit.bonusTaskDone) {
+        habit.done = true;
+        triggerConfetti(0.6);
+        showInsight(habit.id);
+      }
+
+      saveData();
+      renderHabits();
+    }
+
+    function adjustWorkout(delta) {
+      const prev = appData.workoutCount;
+      appData.workoutCount = Math.max(0, Math.min(10, appData.workoutCount + delta));
+
+      if (appData.workoutCount > 3 && appData.workoutCount > prev) {
+        triggerConfetti(0.6);
+        showInsight('workout_over');
+      } else if (appData.workoutCount === 3 && delta > 0) {
+        triggerConfetti(0.7);
+      }
+
+      saveData();
+      renderHabits();
+    }
+
+    // МОДАЛКА С ИНСАЙТАМИ
+    function showInsight(typeKey) {
+      const insight = INSIGHTS[typeKey];
+      if (!insight) return;
+
+      document.getElementById('insightIcon').innerText = insight.icon;
+      document.getElementById('insightTitle').innerText = insight.title;
+      document.getElementById('insightSubtitle').innerText = insight.sub;
+      document.getElementById('insightText').innerHTML = insight.body;
+
+      document.getElementById('insightModal').classList.add('active');
+    }
+
+    function closeInsight(e) {
+      if (e.target.id === 'insightModal') {
+        document.getElementById('insightModal').classList.remove('active');
+      }
+    }
+
+    function closeInsightDirect() {
+      document.getElementById('insightModal').classList.remove('active');
+    }
+
+    function triggerConfetti(originY) {
+      try {
+        if (typeof confetti === 'function') {
+          confetti({
+            particleCount: 45,
+            spread: 60,
+            origin: { y: originY || 0.6 },
+            colors: ['#7952f5', '#00d2ff', '#10b981', '#f59e0b']
+          });
+        }
+      } catch (e) {}
+    }
+
+    // ВКЛАДКИ МЕСЯЦ И ГОД
+    function renderCalendar() {
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      days.forEach(d => {
+        grid.innerHTML += `<div class="cal-day-name">${d}</div>`;
+      });
+
+      const today = new Date().getDate();
+      for (let i = 1; i <= 30; i++) {
+        const isToday = i === today;
+        const isOverToday = isToday && (appData.habits.some(h => h.overachieved) || appData.workoutCount > 3);
+        const isAllDone = isToday && appData.habits.every(h => h.done);
+
+        let extraClass = '';
+        if (isOverToday) extraClass = 'over';
+        else if (isAllDone) extraClass = 'done';
+        else if (isToday) extraClass = 'today';
+
+        grid.innerHTML += `
+          <div class="cal-cell ${extraClass}">
+            ${i}
+          </div>
+        `;
+      }
+
+      renderGoals();
+    }
+
+    function renderGoals() {
+      // Месяц
+      const mList = document.getElementById('monthGoalsList');
+      if (mList) {
+        mList.innerHTML = '';
+        appData.monthGoals.forEach((goal, i) => {
+          mList.innerHTML += `
+            <div class="goal-card">
+              <div class="goal-header">
+                <span>${goal.name}</span>
+                <span style="color: var(--accent-cyan); font-weight: 800; font-family: 'JetBrains Mono';">${goal.progress}%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-val" style="width: ${goal.progress}%;"></div>
+              </div>
+              <div class="goal-actions">
+                <button class="btn-step" onclick="adjustGoal('month', ${i}, -10)">-10%</button>
+                <button class="btn-step" onclick="adjustGoal('month', ${i}, 10)">+10%</button>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      // Год
+      const yList = document.getElementById('yearGoalsList');
+      if (yList) {
+        yList.innerHTML = '';
+        appData.yearGoals.forEach((goal, i) => {
+          yList.innerHTML += `
+            <div class="goal-card">
+              <div class="goal-header">
+                <span>${goal.name}</span>
+                <span style="color: var(--accent-purple); font-weight: 800; font-family: 'JetBrains Mono';">${goal.progress}%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-val" style="width: ${goal.progress}%;"></div>
+              </div>
+              <div class="goal-actions">
+                <button class="btn-step" onclick="adjustGoal('year', ${i}, -5)">-5%</button>
+                <button class="btn-step" onclick="adjustGoal('year', ${i}, 5)">+5%</button>
+              </div>
+            </div>
+          `;
+        });
+      }
+    }
+
+    function adjustGoal(type, idx, val) {
+      const target = type === 'month' ? appData.monthGoals[idx] : appData.yearGoals[idx];
+      target.progress = Math.max(0, Math.min(100, target.progress + val));
+      saveData();
+      renderGoals();
+    }
+
+    function hardResetData() {
+      if (confirm("Точно сбросить все результаты и начать с нуля?")) {
+        localStorage.removeItem('focus_tracker_overdelivery_v1');
+        appData = JSON.parse(JSON.stringify(defaultData));
+        saveData();
+        renderHabits();
+        renderGoals();
+      }
+    }
+
+    // Инициализация
+    renderDate();
+    renderHabits();
+    renderGoals();
+  </script>
+</body>
+</html>
