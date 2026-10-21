@@ -838,7 +838,7 @@
 
       <div class="section-title">
         <span>Привычки и сверхотдача</span>
-        <span id="completedCounter" style="font-size: 0.8rem; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;">0 / 5</span>
+        <span id="completedCounter" style="font-size: 0.8rem; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;">0 / 6</span>
       </div>
 
       <div class="habits-list" id="habitsList"></div>
@@ -917,6 +917,20 @@
           </ul>
         `
       },
+      typing: {
+        icon: "⌨️",
+        title: "Скорость мысли & Устранение когнитивного трения",
+        sub: "Эффект практики слепой печати (Touch Typing)",
+        body: `
+          <strong>Почему слепая печать критически важна разработчику:</strong>
+          <ul>
+            <li><strong>Устранение когнитивного трения:</strong> Когда пальцы сами знают расположение клавиш и спецсимволов ({}, [], =>, $), внимание не переключается с монитора на клавиатуру. Рабочая память мозга на 100% занята логикой алгоритма и архитектурой, а не поиском нужной буквы.</li>
+            <li><strong>Прямой мост «мысль — код»:</strong> Рост скорости с 35 до 70+ WPM экономит от 30 до 45 минут чистого времени каждый день при вёрстке, кодинге и общении.</li>
+            <li><strong>Эргономика и здоровье:</strong> Взгляд постоянно зафиксирован на экране на уровне глаз — шея не перенапрягается от постоянных наклонов головы вниз, а глаза меньше устают от перефокусировки.</li>
+            <li><strong>Мышечная память на тренажерах:</strong> Регулярные сессии на Keybr или Monkeytype закрепляют редкие буквосочетания и превращают набор кода в автоматический инстинкт.</li>
+          </ul>
+        `
+      },
       english: {
         icon: "🇬🇧",
         title: "Языковой прорыв & Снятие языкового барьера",
@@ -980,7 +994,7 @@
       }
     };
 
-    // ЧИСТЫЙ СТАРТ ПО УМОЛЧАНИЮ
+    // ЧИСТЫЙ СТАРТ ПО УМОЛЧАНИЮ (6 ПРИВЫЧЕК С НУЛЯ)
     const defaultData = {
       streak: 0,
       workoutCount: 0,
@@ -991,6 +1005,15 @@
           name: 'Кодинг и разработка', 
           base: '45 мин практики', 
           tag: 'IT', 
+          done: false, 
+          extraMinutes: 0,
+          overachieved: false
+        },
+        { 
+          id: 'typing', 
+          name: 'Слепая печать (Touch Typing)', 
+          base: '15 мин практики (Keybr/Monkeytype)', 
+          tag: 'Навык', 
           done: false, 
           extraMinutes: 0,
           overachieved: false
@@ -1047,7 +1070,7 @@
     let appData = loadData();
 
     function loadData() {
-      const saved = localStorage.getItem('focus_tracker_overdelivery_v1');
+      const saved = localStorage.getItem('focus_tracker_overdelivery_v2');
       if (saved) {
         try { 
           const parsed = JSON.parse(saved);
@@ -1058,7 +1081,7 @@
     }
 
     function saveData() {
-      localStorage.setItem('focus_tracker_overdelivery_v1', JSON.stringify(appData));
+      localStorage.setItem('focus_tracker_overdelivery_v2', JSON.stringify(appData));
     }
 
     function switchTab(tabId, evt) {
@@ -1109,20 +1132,30 @@
           }
         }
 
+        // Иконка
+        let iconEmoji = '💻';
+        if (habit.id === 'typing') iconEmoji = '⌨️';
+        else if (habit.id === 'study') iconEmoji = '📚';
+        else if (habit.id === 'english') iconEmoji = '🇬🇧';
+        else if (habit.id === 'money') iconEmoji = '💳';
+        else if (habit.id === 'clean') iconEmoji = '🧹';
+
         // Выпадающее меню сверхотдачи
         let drawerHtml = '';
-        if (habit.id === 'coding' || habit.id === 'study' || habit.id === 'english') {
+        if (habit.id === 'coding' || habit.id === 'study' || habit.id === 'english' || habit.id === 'typing') {
+          const stepOptions = habit.id === 'typing' ? [10, 15, 30] : [15, 30, 45, 60];
+          const chips = stepOptions.map(m => 
+            `<button class="chip-btn ${habit.extraMinutes === m ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, ${m})">+${m}м</button>`
+          ).join('');
+
           drawerHtml = `
             <div class="overdelivery-drawer ${isExpanded ? 'open' : ''}">
               <div class="drawer-header">
-                <span class="drawer-title">🚀 Сверхнорма времени:</span>
+                <span class="drawer-title">🚀 Сверхнорма практики:</span>
                 <span style="font-family: 'JetBrains Mono';">${habit.extraMinutes > 0 ? `+${habit.extraMinutes} мин` : '0 мин'}</span>
               </div>
               <div class="chips-group">
-                <button class="chip-btn ${habit.extraMinutes === 15 ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, 15)">+15м</button>
-                <button class="chip-btn ${habit.extraMinutes === 30 ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, 30)">+30м</button>
-                <button class="chip-btn ${habit.extraMinutes === 45 ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, 45)">+45м</button>
-                <button class="chip-btn ${habit.extraMinutes === 60 ? 'active-chip' : ''}" onclick="setExtraMinutes(${idx}, 60)">+60м</button>
+                ${chips}
                 ${habit.extraMinutes > 0 ? `<button class="chip-btn" style="color: #ef4444;" onclick="setExtraMinutes(${idx}, 0)">Сброс</button>` : ''}
               </div>
               <button class="why-it-matters-btn" onclick="showInsight('${habit.id}')">
@@ -1153,7 +1186,7 @@
         card.innerHTML = `
           <div class="habit-main-row" onclick="handleCardClick(${idx})">
             <div class="habit-icon">
-              ${habit.id === 'coding' ? '💻' : habit.id === 'study' ? '📚' : habit.id === 'english' ? '🇬🇧' : habit.id === 'money' ? '💳' : '🧹'}
+              ${iconEmoji}
             </div>
             <div class="habit-details">
               <div class="habit-name-wrap">
@@ -1427,7 +1460,7 @@
 
     function hardResetData() {
       if (confirm("Точно сбросить все результаты и начать с нуля?")) {
-        localStorage.removeItem('focus_tracker_overdelivery_v1');
+        localStorage.removeItem('focus_tracker_overdelivery_v2');
         appData = JSON.parse(JSON.stringify(defaultData));
         saveData();
         renderHabits();
